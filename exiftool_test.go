@@ -528,6 +528,29 @@ func TestWriteMetadataFails(t *testing.T) {
 
 }
 
+func TestTransferMetadata(t *testing.T) {
+	t.Parallel()
+
+	testFile := filepath.Join(t.TempDir(), "20190404_131804.jpg")
+	require.Nil(t, copyFile("testdata/20190404_131804.jpg", testFile))
+
+	e, err := NewExiftool(Api("DateFormat=%Y"))
+	require.Nil(t, err)
+	defer e.Close()
+
+	err = e.TransferMetadata("testdata/gps.jpg", testFile)
+	require.Nil(t, err)
+
+	metas := e.ExtractMetadata(testFile)
+	assert.Equal(t, 1, len(metas))
+	assert.Nil(t, metas[0].Err)
+
+	// test if latitude is transferred from GPS.jpg to copy of 20190404_131804.jpg
+	latitude, err := metas[0].GetString("GPSLatitude")
+	assert.Nil(t, err)
+	assert.Equal(t, `43 deg 28' 2.81" N`, latitude)
+}
+
 func TestWriteMetadataNominal(t *testing.T) {
 	t.Parallel()
 

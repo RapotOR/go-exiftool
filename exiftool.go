@@ -140,6 +140,64 @@ func (e *Exiftool) Close() error {
 	return nil
 }
 
+func (e *Exiftool) TransferMetadata(source, target string) error {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
+	s, err := os.Stat(source)
+	if err != nil {
+		return ErrNotExist
+	}
+
+	if s.IsDir() {
+		return ErrNotFile
+	}
+
+	t, err := os.Stat(target)
+	if err != nil {
+		return ErrNotExist
+	}
+
+	if t.IsDir() {
+		return ErrNotFile
+	}
+
+	if !e.backupOriginal {
+		if _, err := fmt.Fprintln(e.stdin, "-overwrite_original"); err != nil {
+			return err
+		}
+	}
+
+	if _, err := fmt.Fprintln(e.stdin, "-TagsFromFile"); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintln(e.stdin, source); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintln(e.stdin, target); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintln(e.stdin, executeArg); err != nil {
+		return err
+	}
+
+	scanOk := e.scanMergedOut.Scan()
+	scanErr := e.scanMergedOut.Err()
+	if scanErr != nil {
+		if scanErr == bufio.ErrTooLong {
+			return ErrBufferTooSmall
+		}
+		return fmt.Errorf("error while reading stdMergedOut: %w", e.scanMergedOut.Err())
+	}
+	if !scanOk {
+		return fmt.Errorf("error while reading stdMergedOut: EOF")
+	}
+
+	fmt.Println(string(e.scanMergedOut.Bytes()))
+
+	return nil
+}
+
 // ExtractMetadata extracts metadata from files
 func (e *Exiftool) ExtractMetadata(files ...string) []FileMetadata {
 	e.lock.Lock()
