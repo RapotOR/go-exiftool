@@ -558,7 +558,7 @@ func TestUseCustomConfigFile(t *testing.T) {
 	assert.Nil(t, err)
 	defer e.Close()
 
-	testFile := "/mnt/c/tmp/20190404_131804.jpg" // filepath.Join(t.TempDir(), "20190404_131804.jpg")
+	testFile := filepath.Join(t.TempDir(), "20190404_131804.jpg")
 	require.Nil(t, copyFile("testdata/20190404_131804.jpg", testFile))
 
 	mds := e.ExtractMetadata(testFile)
