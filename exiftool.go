@@ -43,6 +43,7 @@ type Exiftool struct {
 	bufferSet                bool
 	buffer                   []byte
 	bufferMaxSize            int
+	priorInitArgs            []string
 	extraInitArgs            []string
 	exiftoolBinPath          string
 	cmd                      *exec.Cmd
@@ -63,7 +64,11 @@ func NewExiftool(opts ...func(*Exiftool) error) (*Exiftool, error) {
 		}
 	}
 
-	args := append([]string(nil), initArgs...)
+	args := []string(nil)
+	if len(e.priorInitArgs) > 0 {
+		args = append(args, e.priorInitArgs...)
+	}
+	args = append(args, initArgs...)
 	if len(e.extraInitArgs) > 0 {
 		args = append(args, "-common_args")
 		args = append(args, e.extraInitArgs...)
@@ -401,6 +406,17 @@ func Charset(charset string) func(*Exiftool) error {
 func Api(apiValue string) func(*Exiftool) error {
 	return func(e *Exiftool) error {
 		e.extraInitArgs = append(e.extraInitArgs, "-api", apiValue)
+		return nil
+	}
+}
+
+// ConfigFile enables custom config file
+// Sample :
+//   e, err := NewExiftool(ConfigFile("path/to/config"))
+func ConfigFile(config string) func(*Exiftool) error {
+	return func(e *Exiftool) error {
+		// config must be at first position.
+		e.priorInitArgs = []string{"-config", config}
 		return nil
 	}
 }

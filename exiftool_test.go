@@ -551,6 +551,41 @@ func TestTransferMetadata(t *testing.T) {
 	assert.Equal(t, `43 deg 28' 2.81" N`, latitude)
 }
 
+func TestUseCustomConfigFile(t *testing.T) {
+	t.Parallel()
+
+	e, err := NewExiftool(ConfigFile("testdata/config.conf"))
+	assert.Nil(t, err)
+	defer e.Close()
+
+	testFile := "/mnt/c/tmp/20190404_131804.jpg" // filepath.Join(t.TempDir(), "20190404_131804.jpg")
+	require.Nil(t, copyFile("testdata/20190404_131804.jpg", testFile))
+
+	mds := e.ExtractMetadata(testFile)
+	require.Len(t, mds, 1)
+	require.Nil(t, mds[0].Err)
+
+	value := "fakeTitleForCustomField"
+
+	mds[0].SetString("MyCustomField", value)
+	mds[0].Err = nil
+
+	checkValue, err := mds[0].GetStrings("MyCustomField")
+	require.Nil(t, err)
+	require.Equal(t, []string{value}, checkValue)
+
+	e.WriteMetadata(mds)
+	require.Nil(t, mds[0].Err)
+
+	mds2 := e.ExtractMetadata(testFile)
+	require.Len(t, mds2, 1)
+	require.Nil(t, mds2[0].Err)
+
+	gotStr, err := mds2[0].GetStrings("MyCustomField")
+	require.Nil(t, err)
+	require.Equal(t, []string{value}, gotStr)
+}
+
 func TestWriteMetadataNominal(t *testing.T) {
 	t.Parallel()
 
